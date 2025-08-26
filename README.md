@@ -26,4 +26,4 @@ To access the Django administration page, head to:
 # Development Status
 
 Currently at Sprint 1
-    ** 50% done **
+    ** 90% done **
