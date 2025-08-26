@@ -8,6 +8,7 @@ function LogoutButton() {
 
       if (response.ok) {
         alert("Logged out successfully!");
+        localStorage.removeItem("user");
         window.location.href = "/"; // redirect to login page
       } else {
         alert("Logout failed");
@@ -18,7 +19,14 @@ function LogoutButton() {
     }
   };
 
-  return <button onClick={handleLogout}>Logout</button>;
+  return (
+    <button
+      onClick={handleLogout}
+      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition"
+    >
+      Logout
+    </button>
+  );
 }
 
 export default LogoutButton;

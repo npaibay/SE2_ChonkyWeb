@@ -24,7 +24,11 @@ function DashboardRouter() {
   }, [navigate]);
 
   if (!user) {
-    return <p>Loading...</p>; // small placeholder while redirecting
+    return (
+      <div className="flex items-center justify-center h-screen w-full text-white text-lg">
+        Loading...
+      </div>
+    );
   }
 
   return user.is_admin ? (

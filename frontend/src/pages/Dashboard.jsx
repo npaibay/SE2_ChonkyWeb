@@ -2,6 +2,7 @@ import UpdatePassword from "./UpdatePassword";
 
 function Dashboard({ user }) {
   let current = user;
+
   if (!current) {
     try {
       const raw = localStorage.getItem("user");
@@ -31,23 +32,33 @@ function Dashboard({ user }) {
   }
 
   return (
-    <div>
-      <h1>User Dashboard</h1>
-      <p>Welcome, {current.username || current.email}</p>
+    <div className="w-full max-w-3xl mx-auto p-6 bg-gray-800 rounded-lg shadow-md">
+      <h1 className="text-3xl font-bold mb-2">User Dashboard</h1>
+      <p className="text-lg mb-6">
+        Welcome, <span className="font-medium">{current.username || current.email}</span>
+      </p>
 
-      <div style={{ margin: "12px 0" }}>
-        <button onClick={handleLogout}>Logout</button>
+      {/* Logout */}
+      <div className="mb-8">
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+        >
+          Logout
+        </button>
       </div>
 
-      <hr />
+      <hr className="border-gray-700 mb-8" />
 
-      <section style={{ marginTop: 16 }}>
-        <h2>Update Password</h2>
+      {/* Update Password */}
+      <section className="mb-10">
+        <h2 className="text-2xl font-semibold mb-4">Update Password</h2>
         <UpdatePassword />
       </section>
 
-      <div style={{ marginTop: 16 }}>
-        <p>Normal user content goes here.</p>
+      {/* Normal user content */}
+      <div>
+        <p className="text-sm text-gray-300">Normal user content goes here.</p>
       </div>
     </div>
   );

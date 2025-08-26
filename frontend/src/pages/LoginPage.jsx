@@ -40,40 +40,53 @@ function LoginPage() {
   };
 
   return (
-    <div>
-      <h1>Sign in to your account</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+      <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold mb-6 text-white">Sign in to your account</h1>
 
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>Email address or Username</label>
-          <input
-            type="text"
-            placeholder="Enter your email or username..."
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            required
-          />
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block mb-1 font-medium text-white">
+              Email address or Username
+            </label>
+            <input
+              type="text"
+              placeholder="Enter your email or username..."
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-white">Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold transition"
+          >
+            Sign in
+          </button>
+        </form>
+
+        {msg && <p className="mt-4 text-sm text-red-400 font-medium">{msg}</p>}
+
+        <div className="mt-6 text-sm text-gray-300">
+          <span>New user? </span>
+          <Link to="/create-user" className="text-blue-400 hover:underline">
+            Create an account
+          </Link>
         </div>
-
-        <div>
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Enter your password..."
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <button type="submit">Sign in</button>
-      </form>
-
-      {msg && <p style={{ color: "red" }}>{msg}</p>}
-
-      <div style={{ marginTop: "16px" }}>
-        <span>New user? </span>
-        <Link to="/create-user">Create an account</Link>
       </div>
     </div>
   );

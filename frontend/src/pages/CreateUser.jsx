@@ -38,51 +38,67 @@ function CreateUser() {
   };
 
   return (
-    <div>
-      <h1>Create User</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+      <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold mb-6 text-white">Create User</h1>
 
-      <form onSubmit={handleCreate}>
-        <div>
-          <label>Username</label>
-          <input
-            type="text"
-            placeholder="Enter username..."
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+        <form onSubmit={handleCreate} className="space-y-5">
+          <div>
+            <label className="block mb-1 font-medium text-white">Username</label>
+            <input
+              type="text"
+              placeholder="Enter username..."
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-white">Email</label>
+            <input
+              type="email"
+              placeholder="Enter email..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 font-medium text-white">Password</label>
+            <input
+              type="password"
+              placeholder="Enter password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold transition"
+          >
+            Create
+          </button>
+        </form>
+
+        {msg && (
+          <p className="mt-4 text-sm text-red-400 font-medium">{msg}</p>
+        )}
+
+        <div className="mt-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-sm text-blue-400 hover:underline"
+          >
+            ⬅ Back
+          </button>
         </div>
-
-        <div>
-          <label>Email</label>
-          <input
-            type="email"
-            placeholder="Enter email..."
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Enter password..."
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <button type="submit">Create</button>
-      </form>
-
-      {msg && <p style={{ color: "red" }}>{msg}</p>}
-
-      {/* Back button */}
-      <div style={{ marginTop: "16px" }}>
-        <button onClick={() => navigate(-1)}>⬅ Back</button>
       </div>
     </div>
   );

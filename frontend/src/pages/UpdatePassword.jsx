@@ -16,7 +16,10 @@ function UpdatePassword() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword,
+        }),
       });
 
       if (!res.ok) {
@@ -35,40 +38,53 @@ function UpdatePassword() {
   };
 
   return (
-    <div>
-      <h1>Update Password</h1>
+    <div className="w-full max-w-md mx-auto p-6 bg-gray-800 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold mb-6 text-white">Update Password</h1>
 
-      <form onSubmit={handleUpdate}>
+      <form onSubmit={handleUpdate} className="space-y-5">
         <div>
-          <label>Old Password</label>
+          <label className="block mb-1 font-medium text-white">Old Password</label>
           <input
             type="password"
             placeholder="Enter old password..."
             value={oldPassword}
             onChange={(e) => setOldPassword(e.target.value)}
             required
+            className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div>
-          <label>New Password</label>
+          <label className="block mb-1 font-medium text-white">New Password</label>
           <input
             type="password"
             placeholder="Enter new password..."
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
+            className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <button type="submit">Update</button>
+        <button
+          type="submit"
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold transition"
+        >
+          Update
+        </button>
       </form>
 
-      {msg && <p style={{ color: "red" }}>{msg}</p>}
+      {msg && (
+        <p className="mt-4 text-sm font-medium text-red-400">{msg}</p>
+      )}
 
-      {/* Back button */}
-      <div style={{ marginTop: "16px" }}>
-        <button onClick={() => navigate(-1)}>⬅ Back</button>
+      <div className="mt-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-sm text-blue-400 hover:underline"
+        >
+          ⬅ Back
+        </button>
       </div>
     </div>
   );
