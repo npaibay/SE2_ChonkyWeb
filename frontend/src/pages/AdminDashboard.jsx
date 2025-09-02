@@ -1,138 +1,59 @@
-import { useState } from "react";
-import UpdatePassword from "./UpdatePassword";
-import CreateUser from "./CreateUser";
-import ManageRoles from "./ManageRoles";   // 👈 PB7 component
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import LogoutButton from "./LogoutButton";
 
-function AdminPanel({ user }) {
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [showManageRolesModal, setShowManageRolesModal] = useState(false); // 👈 PB7 modal
+function AdminDashboard() {
+  const { user } = useAuth();
 
-  let current = user;
-  if (!current) {
-    try {
-      const raw = localStorage.getItem("user");
-      if (raw) current = JSON.parse(raw);
-    } catch (err) {
-      console.error("Failed to parse user:", err);
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await fetch("http://127.0.0.1:8000/api/logout/", {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      localStorage.removeItem("user");
-      window.location.href = "/";
-    }
-  };
-
-  if (!current) {
-    window.location.href = "/";
-    return null;
+  if (!user) {
+    return null; // handled by PrivateRoute
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto py-10 px-4 sm:px-6 md:px-8">
-      <h1 className="text-3xl font-bold mb-2 text-white">Admin Panel</h1>
-      <p className="text-lg mb-6 text-white">
-        Welcome, <span className="font-medium">{current.username || current.email}</span>{" "}
-        {current.is_admin && <span className="text-sm text-gray-400">(admin)</span>}
-      </p>
+    <div className="min-h-screen flex flex-col items-center justify-start bg-gray-900 text-white p-8">
+      <div className="w-full max-w-4xl bg-gray-800 rounded-xl shadow-md p-8">
+        {/* Header */}
+        <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+        <p className="text-gray-300 mb-8">
+          Welcome, <span className="font-semibold">{user.username || user.email}</span>{" "}
+          <span className="text-sm text-blue-400">(admin)</span>
+        </p>
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap gap-4 mb-8">
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-        >
-          🚪 Logout
-        </button>
+        {/* Action buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <LogoutButton />
 
-        <Link to="/logs">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          <Link
+            to="/logs"
+            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium transition flex items-center justify-center"
+          >
             📜 View Logs
-          </button>
-        </Link>
+          </Link>
 
-        <button
-          onClick={() => setShowPasswordModal(true)}
-          className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded"
-        >
-          🔐 Update Password
-        </button>
+          <Link
+            to="/update-password"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition flex items-center justify-center"
+          >
+            🔑 Update Password
+          </Link>
 
-        <button
-          onClick={() => setShowCreateUserModal(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-        >
-          👤 Create User
-        </button>
+          <Link
+            to="/create-user"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition flex items-center justify-center"
+          >
+            ➕ Create User
+          </Link>
 
-        {/* 👇 PB7 Manage Roles */}
-        <button
-          onClick={() => setShowManageRolesModal(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
-        >
-          🛡️ Manage Roles
-        </button>
+          <Link
+            to="/manage-roles"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition flex items-center justify-center"
+          >
+            🛡 Manage Roles
+          </Link>
+        </div>
       </div>
-
-      {/* Password Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg relative">
-            <button
-              onClick={() => setShowPasswordModal(false)}
-              className="absolute top-2 right-2 text-white hover:text-red-400 text-xl"
-            >
-              &times;
-            </button>
-            <h2 className="text-xl font-semibold mb-4 text-white">Update Password</h2>
-            <UpdatePassword />
-          </div>
-        </div>
-      )}
-
-      {/* Create User Modal */}
-      {showCreateUserModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg relative">
-            <button
-              onClick={() => setShowCreateUserModal(false)}
-              className="absolute top-2 right-2 text-white hover:text-red-400 text-xl"
-            >
-              &times;
-            </button>
-            <h2 className="text-xl font-semibold mb-4 text-white">Create User</h2>
-            <CreateUser />
-          </div>
-        </div>
-      )}
-
-      {/* 👇 PB7 Manage Roles Modal */}
-      {showManageRolesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg relative">
-            <button
-              onClick={() => setShowManageRolesModal(false)}
-              className="absolute top-2 right-2 text-white hover:text-red-400 text-xl"
-            >
-              &times;
-            </button>
-            <h2 className="text-xl font-semibold mb-4 text-white">Manage User Roles</h2>
-            <ManageRoles onDone={() => setShowManageRolesModal(false)} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-export default AdminPanel;
+export default AdminDashboard;
