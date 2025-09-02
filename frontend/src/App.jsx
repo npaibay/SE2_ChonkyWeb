@@ -1,32 +1,102 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import DashboardRouter from "./pages/DashboardRouter";
 import UpdatePassword from "./pages/UpdatePassword";
 import CreateUser from "./pages/CreateUser";
 import DeactivateAccount from "./pages/DeactivateAccount";
 import Logs from "./pages/Logs";
-import NotFound from "./pages/NotFound"; // 👈 import 404 page
 import ManageRoles from "./pages/ManageRoles";
-import 'react-toastify/dist/ReactToastify.css';
-// import { ToastContainer } from "react-toastify";
+import NotFound from "./pages/NotFound";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import "react-toastify/dist/ReactToastify.css";
+
+// 🔒 Require any authenticated user
+function PrivateRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
+// 🔒 Require admin only
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  if (!user.is_admin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen w-full flex flex-col bg-gray-900 text-white px-4 sm:px-6 md:px-8 overflow-x-hidden">
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardRouter />} />
-          <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/create-user" element={<CreateUser />} />
-          <Route path="/deactivate-account" element={<DeactivateAccount />} />
-          <Route path="/logs" element={<Logs />} />
-          <Route path="/manage-roles" element={<ManageRoles />} />
+      <AuthProvider>
+        <div className="min-h-screen w-full flex flex-col bg-gray-900 text-white px-4 sm:px-6 md:px-8 overflow-x-hidden">
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<LoginPage />} />
 
-          {/* 👇 catch-all route should always be last */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </div>
+            {/* Shared user/admin */}
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <DashboardRouter />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/update-password"
+              element={
+                <PrivateRoute>
+                  <UpdatePassword />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Admin-only */}
+            <Route
+              path="/create-user"
+              element={
+                <AdminRoute>
+                  <CreateUser />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/deactivate-account"
+              element={
+                <AdminRoute>
+                  <DeactivateAccount />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <AdminRoute>
+                  <Logs />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/manage-roles"
+              element={
+                <AdminRoute>
+                  <ManageRoles />
+                </AdminRoute>
+              }
+            />
+
+            {/* 404 fallback */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+      </AuthProvider>
     </Router>
   );
 }

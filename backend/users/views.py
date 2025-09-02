@@ -1,21 +1,22 @@
-import json
-from django.contrib.auth import authenticate, login, logout, get_user_model
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_GET
+from django.contrib.auth import get_user_model, authenticate
+from rest_framework import permissions, status, serializers
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from .models import SecurityLog
 
-# Get your project’s user model (default: django.contrib.auth.models.User)
 User = get_user_model()
+
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
-        return x_forwarded_for.split(",")[0]
+        return x_forwarded_for.split(",")[0].strip()
     return request.META.get("REMOTE_ADDR")
 
+
 def serialize_user(user: User):
-    """Return JSON-safe representation of a user."""
     return {
         "id": user.id,
         "username": user.username,
@@ -24,152 +25,163 @@ def serialize_user(user: User):
     }
 
 
-@require_GET
-def logs_view(request):
-    """GET /api/logs/ — admin-only: view latest security logs."""
-    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({"detail": "Forbidden"}, status=403)
+# =============================
+# JWT login: email OR username
+# =============================
+class TokenObtainView(APIView):
+    permission_classes = [permissions.AllowAny]
 
-    logs = SecurityLog.objects.select_related("user").order_by("-timestamp")[:50]
-    data = [
-        {
-            "user": log.user.username if log.user else "Unknown",
-            "action": log.action,
-            "timestamp": log.timestamp.isoformat(),  # 👈 convert datetime to string
-            "ip": log.ip_address,
-        }
-        for log in logs
-    ]
-    return JsonResponse(data, safe=False)
+    class InputSerializer(serializers.Serializer):
+        identifier = serializers.CharField()
+        password = serializers.CharField()
 
+    def post(self, request):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-@csrf_exempt
-@require_POST
-def login_view(request):
-    """POST /api/login/ — authenticate user and start session."""
-    try:
-        data = json.loads(request.body.decode() or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"detail": "Invalid JSON"}, status=400)
+        identifier = serializer.validated_data["identifier"]
+        password = serializer.validated_data["password"]
 
-    username = data.get("username")
-    email = data.get("email")
-    password = data.get("password")
-
-    if not password or (not username and not email):
-        return JsonResponse({"detail": "Missing credentials"}, status=400)
-
-    # Allow login with email by mapping to username
-    if not username and email:
+        # resolve identifier → username if it's an email
+        username_value = identifier
         try:
-            u = User.objects.get(email=email)
-            username = u.username
+            u = User.objects.get(email__iexact=identifier)
+            username_value = u.username
         except User.DoesNotExist:
-            SecurityLog.objects.create(action="FAILED_LOGIN", ip_address=get_client_ip(request))
-            return JsonResponse({"detail": "Invalid credentials"}, status=400)
+            pass
 
-    user = authenticate(request, username=username, password=password)
-    if not user:
-        SecurityLog.objects.create(action="FAILED_LOGIN", ip_address=get_client_ip(request))
-        return JsonResponse({"detail": "Invalid credentials"}, status=400)
+        user = authenticate(username=username_value, password=password)
+        if not user:
+            SecurityLog.objects.create(
+                user=None, action="FAILED_LOGIN", ip_address=get_client_ip(request)
+            )
+            return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-    login(request, user)
-    SecurityLog.objects.create(user=user, action="LOGIN", ip_address=get_client_ip(request))
-    return JsonResponse(serialize_user(user))
+        if not user.is_active:
+            return Response({"detail": "Inactive account"}, status=status.HTTP_403_FORBIDDEN)
 
+        # issue tokens
+        refresh = RefreshToken.for_user(user)
+        refresh["username"] = user.username
+        refresh["email"] = user.email
+        refresh["is_admin"] = bool(user.is_staff or user.is_superuser)
 
-@csrf_exempt
-@require_POST
-def logout_view(request):
-    """POST /api/logout/ — end session."""
-    if request.user.is_authenticated:
-        SecurityLog.objects.create(user=request.user, action="LOGOUT", ip_address=get_client_ip(request))
-    logout(request)
-    return JsonResponse({"detail": "Logged out"})
+        SecurityLog.objects.create(user=user, action="LOGIN", ip_address=get_client_ip(request))
 
-
-@require_GET
-def me_view(request):
-    """GET /api/me/ — get current logged-in user (if session active)."""
-    if not request.user.is_authenticated:
-        return JsonResponse({"detail": "Unauthorized"}, status=401)
-    return JsonResponse(serialize_user(request.user))
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        })
 
 
-@csrf_exempt
-@require_POST
-def update_password_view(request):
-    """POST /api/update-password/ — change the logged-in user’s password."""
-    if not request.user.is_authenticated:
-        return JsonResponse({"detail": "Unauthorized"}, status=401)
+# =============================
+# Logout (blacklist refresh)
+# =============================
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    try:
-        data = json.loads(request.body.decode() or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"detail": "Invalid JSON"}, status=400)
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
 
-    old_pw = data.get("old_password")
-    new_pw = data.get("new_password")
-    if not old_pw or not new_pw:
-        return JsonResponse({"detail": "Missing fields"}, status=400)
+        if not refresh_token:
+            return Response({"detail": "Refresh token required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not request.user.check_password(old_pw):
-        return JsonResponse({"detail": "Old password incorrect"}, status=400)
-
-    request.user.set_password(new_pw)
-    request.user.save()
-    return JsonResponse({"detail": "Password updated"})
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # ✅ mark as invalid
+            SecurityLog.objects.create(user=request.user, action="LOGOUT", ip_address=get_client_ip(request))
+            return Response({"detail": "Logged out successfully"})
+        except (TokenError, InvalidToken):
+            return Response({"detail": "Invalid or expired refresh token"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@csrf_exempt
-@require_POST
-def create_user_view(request):
-    """POST /api/create-user/ — admin-only: create a new user."""
-    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({"detail": "Forbidden"}, status=403)
+# =============================
+# Protected endpoints
+# =============================
+class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    try:
-        data = json.loads(request.body.decode() or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"detail": "Invalid JSON"}, status=400)
-
-    username = data.get("username")
-    email = data.get("email")
-    password = data.get("password")
-
-    if not username or not email or not password:
-        return JsonResponse({"detail": "Missing fields"}, status=400)
-
-    if User.objects.filter(username=username).exists():
-        return JsonResponse({"detail": "Username already exists"}, status=400)
-    if User.objects.filter(email=email).exists():
-        return JsonResponse({"detail": "Email already exists"}, status=400)
-
-    user = User.objects.create_user(username=username, email=email, password=password)
-    return JsonResponse({"detail": "User created", "user": serialize_user(user)})
+    def get(self, request):
+        return Response(serialize_user(request.user))
 
 
-@csrf_exempt
-@require_POST
-def deactivate_user_view(request):
-    """POST /api/deactivate-user/ — admin-only: disable a user account."""
-    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({"detail": "Forbidden"}, status=403)
+class UpdatePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    try:
-        data = json.loads(request.body.decode() or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"detail": "Invalid JSON"}, status=400)
+    def post(self, request):
+        old_pw = request.data.get("old_password")
+        new_pw = request.data.get("new_password")
 
-    target_username = data.get("username")
-    if not target_username:
-        return JsonResponse({"detail": "Missing username"}, status=400)
+        if not old_pw or not new_pw:
+            return Response({"detail": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        target = User.objects.get(username=target_username)
-    except User.DoesNotExist:
-        return JsonResponse({"detail": "User not found"}, status=404)
+        if not request.user.check_password(old_pw):
+            return Response({"detail": "Old password incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
-    target.is_active = False
-    target.save()
-    return JsonResponse({"detail": f"User '{target_username}' deactivated"})
+        request.user.set_password(new_pw)
+        request.user.save()
+
+        SecurityLog.objects.create(user=request.user, action="PASSWORD_CHANGE", ip_address=get_client_ip(request))
+
+        return Response({"detail": "Password updated"})
+
+
+class CreateUserView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        username = request.data.get("username")
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        if not username or not email or not password:
+            return Response({"detail": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({"detail": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email=email).exists():
+            return Response({"detail": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+
+        SecurityLog.objects.create(user=request.user, action="CREATE_USER", ip_address=get_client_ip(request))
+
+        return Response({"detail": "User created", "user": serialize_user(user)}, status=status.HTTP_201_CREATED)
+
+
+class DeactivateUserView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        target_username = request.data.get("username")
+        if not target_username:
+            return Response({"detail": "Missing username"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target = User.objects.get(username=target_username)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        target.is_active = False
+        target.save()
+
+        SecurityLog.objects.create(user=request.user, action="DEACTIVATE_USER", ip_address=get_client_ip(request))
+
+        return Response({"detail": f"User '{target_username}' deactivated"})
+
+
+class LogsView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        logs = SecurityLog.objects.select_related("user").order_by("-timestamp")[:50]
+        data = [
+            {
+                "user": log.user.username if log.user else "Unknown",
+                "action": log.action,
+                "timestamp": log.timestamp.isoformat(),
+                "ip": log.ip_address,
+            }
+            for log in logs
+        ]
+        return Response(data)

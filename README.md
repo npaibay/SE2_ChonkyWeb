@@ -3,12 +3,13 @@
 # For React.js (Frontend)
 
 To run the frontend, please do:
-    cd se2_chonkyweb_frontend
+    cd frontend
     npm start (or do -> npm run dev)
 
 # For Django
 
 To run the backend, please do:
+    cd backend
     python manage.py runserver
 
 To create a superuser, please do:
@@ -25,5 +26,7 @@ To access the Django administration page, head to:
 
 # Development Status
 
+https://docs.google.com/spreadsheets/d/1OzKLO0x1o_5qVLL-e_6W7Y8s6o_9i0TqSeVhKn_pIhQ/edit?usp=sharing
+
 Currently at Sprint 1
-    ** 90% done **
+    ** 50-60% done **

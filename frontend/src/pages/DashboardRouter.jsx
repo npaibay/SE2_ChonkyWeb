@@ -1,27 +1,9 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import AdminPanel from "./AdminPanel";   // use AdminPanel (not AdminDashboard)
-import Dashboard from "./Dashboard";
+import { useAuth } from "../context/AuthContext";
+import AdminDashboard from "./AdminDashboard";
+import UserDashboard from "./UserDashboard";
 
 function DashboardRouter() {
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Trust localStorage (simple for Sprint 1)
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      navigate("/"); // no user, go back to login
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      setUser(parsed);
-    } catch {
-      navigate("/"); // parsing failed, treat as not logged in
-    }
-  }, [navigate]);
+  const { user } = useAuth();
 
   if (!user) {
     return (
@@ -32,9 +14,9 @@ function DashboardRouter() {
   }
 
   return user.is_admin ? (
-    <AdminPanel user={user} />
+    <AdminDashboard user={user} />
   ) : (
-    <Dashboard user={user} />
+    <UserDashboard user={user} />
   );
 }
 
