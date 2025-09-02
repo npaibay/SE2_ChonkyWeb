@@ -1,7 +1,7 @@
 function Modal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-      <div className="bg-gray-800 text-white w-full max-w-md p-6 rounded-lg shadow-lg relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 transition-opacity duration-300">
+      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg relative animate-scaleIn">
         {/* Close Button */}
         <button
           onClick={onClose}

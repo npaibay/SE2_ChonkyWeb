@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify"; // works if you installed toastify
 
 function LoginPage() {
-  const [identifier, setIdentifier] = useState(""); // username OR email
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMsg("");
 
     const isEmail = identifier.includes("@");
 
@@ -17,7 +16,7 @@ function LoginPage() {
       const res = await fetch("http://127.0.0.1:8000/api/login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // required for session cookies
+        credentials: "include",
         body: JSON.stringify({
           ...(isEmail ? { email: identifier } : { username: identifier }),
           password,
@@ -26,23 +25,25 @@ function LoginPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setMsg(data.detail || "Invalid credentials");
+        // use toast if available, else alert
+        (toast?.error || alert)(data.detail || "Invalid credentials");
         return;
       }
 
       const user = await res.json();
       localStorage.setItem("user", JSON.stringify(user));
+      (toast?.success || alert)("Login successful!");
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
-      setMsg("Server error, please try again.");
+      (toast?.error || alert)("Server error, please try again.");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
       <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6 text-white">Sign in to your account</h1>
+        <h1 className="text-2xl font-bold mb-6 text-white">ChonkyBoi Pet Store and Grooming Salon</h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
@@ -79,9 +80,7 @@ function LoginPage() {
           </button>
         </form>
 
-        {msg && <p className="mt-4 text-sm text-red-400 font-medium">{msg}</p>}
-
-        <div className="mt-6 text-sm text-gray-300">
+        <div className="mt-6 text-sm text-gray-300 text-center">
           <span>New user? </span>
           <Link to="/create-user" className="text-blue-400 hover:underline">
             Create an account

@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 function UpdatePassword() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [msg, setMsg] = useState("");
-  const navigate = useNavigate();
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -77,15 +75,6 @@ function UpdatePassword() {
       {msg && (
         <p className="mt-4 text-sm font-medium text-red-400">{msg}</p>
       )}
-
-      <div className="mt-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm text-blue-400 hover:underline"
-        >
-          ⬅ Back
-        </button>
-      </div>
     </div>
   );
 }

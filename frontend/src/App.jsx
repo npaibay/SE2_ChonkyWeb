@@ -7,6 +7,8 @@ import DeactivateAccount from "./pages/DeactivateAccount";
 import Logs from "./pages/Logs";
 import NotFound from "./pages/NotFound"; // 👈 import 404 page
 import ManageRoles from "./pages/ManageRoles";
+import 'react-toastify/dist/ReactToastify.css';
+// import { ToastContainer } from "react-toastify";
 
 function App() {
   return (
