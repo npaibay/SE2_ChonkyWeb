@@ -1,86 +1,140 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { toast } from "react-toastify"; // works if you installed toastify
+import { toast } from "react-toastify";
+import logo from "../assets/pictures/chonky_boi-logo-01.png";
+import { useAuth } from "../context/AuthContext";
 
 function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState(null);
   const navigate = useNavigate();
+  const { login } = useAuth();
+
+  useEffect(() => {
+    const errorMsg = sessionStorage.getItem("authError");
+    if (errorMsg) {
+      setAuthError(errorMsg);
+      sessionStorage.removeItem("authError");
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
 
-    const isEmail = identifier.includes("@");
+    setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/login/", {
+      const res = await fetch("http://127.0.0.1:8000/api/token/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          ...(isEmail ? { email: identifier } : { username: identifier }),
-          password,
-        }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        // use toast if available, else alert
         (toast?.error || alert)(data.detail || "Invalid credentials");
+        setLoading(false);
         return;
       }
 
-      const user = await res.json();
-      localStorage.setItem("user", JSON.stringify(user));
+      const { access, refresh } = await res.json();
+
+      // fetch profile
+      const meRes = await fetch("http://127.0.0.1:8000/api/me/", {
+        headers: { Authorization: `Bearer ${access}` },
+      });
+
+      if (meRes.ok) {
+        const me = await meRes.json();
+        login({ access, refresh }, me);
+      } else {
+        sessionStorage.setItem("authError", "Failed to load user profile.");
+        navigate("/login");
+        return;
+      }
+
       (toast?.success || alert)("Login successful!");
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
-      (toast?.error || alert)("Server error, please try again.");
+      sessionStorage.setItem("authError", "Server error, please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6 text-white">ChonkyBoi Pet Store and Grooming Salon</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4 sm:px-6 md:px-8">
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-gray-800 p-6 sm:p-8 md:p-10 rounded-xl shadow-md">
+        <div className="flex justify-center mb-4 sm:mb-6">
+          <img
+            src={logo}
+            alt="Chonky Boi Pet Store"
+            className="mx-auto object-contain w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64"
+            draggable="false"
+          />
+        </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        {authError && (
+          <div className="mb-4 text-center text-red-400 font-medium text-sm">
+            {authError}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
           <div>
-            <label className="block mb-1 font-medium text-white">
+            <label
+              htmlFor="identifier"
+              className="block mb-1 font-medium text-white text-sm sm:text-base"
+            >
               Email address or Username
             </label>
             <input
+              id="identifier"
               type="text"
               placeholder="Enter your email or username..."
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
-              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoComplete="username"
             />
           </div>
 
           <div>
-            <label className="block mb-1 font-medium text-white">Password</label>
+            <label
+              htmlFor="password"
+              className="block mb-1 font-medium text-white text-sm sm:text-base"
+            >
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               placeholder="Enter your password..."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoComplete="current-password"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold transition"
+            disabled={loading}
+            className={`w-full ${
+              loading ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
+            } text-white font-semibold py-2 sm:py-2.5 btn-rounded-3xl transition text-sm sm:text-base`}
           >
-            Sign in
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-6 text-sm text-gray-300 text-center">
+        <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-300">
           <span>New user? </span>
           <Link to="/create-user" className="text-blue-400 hover:underline">
             Create an account

@@ -1,28 +1,31 @@
+import { useAuth } from "../context/AuthContext";
+
 function LogoutButton() {
+  const { logout, access, refresh } = useAuth();
+
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/logout/", {
-        method: "POST",
-        credentials: "include", // sends session cookies
-      });
-
-      if (response.ok) {
-        alert("Logged out successfully!");
-        localStorage.removeItem("user");
-        window.location.href = "/"; // redirect to login page
-      } else {
-        alert("Logout failed");
+      if (refresh) {
+        await fetch("http://127.0.0.1:8000/api/logout/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${access}`,
+          },
+          body: JSON.stringify({ refresh }),
+        });
       }
     } catch (error) {
-      console.error(error);
-      alert("Error connecting to server");
+      console.error("Logout error:", error);
+    } finally {
+      logout("You have been logged out.");
     }
   };
 
   return (
     <button
       onClick={handleLogout}
-      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition"
+      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 btn-rounded-3xl font-medium transition"
     >
       Logout
     </button>

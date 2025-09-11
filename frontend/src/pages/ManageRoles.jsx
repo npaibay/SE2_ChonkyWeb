@@ -92,7 +92,7 @@ function ManageRoles({ onDone }) {
         <button
           type="submit"
           disabled={busy}
-          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white px-4 py-2 rounded"
+          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white px-4 py-2 btn-rounded-3xl"
         >
           {busy ? "Updating…" : "Update Roles"}
         </button>

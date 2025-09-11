@@ -81,7 +81,7 @@ function CreateUser() {
 
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold transition"
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 btn-rounded-3xl font-semibold transition"
           >
             Create
           </button>
