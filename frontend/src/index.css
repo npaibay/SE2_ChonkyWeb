@@ -11,6 +11,7 @@
   --color-text-brown: #7D4826;
   --color-whitish: #E9E4DA;
   --color-whitish-hover: #C6B5A0;
+  --color-default-text: #FFF1E9;
 }
 
 .btn-rounded {
@@ -35,7 +36,7 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: var(--color-default-text);
   background-color: #242424;
 
   font-synthesis: none;
