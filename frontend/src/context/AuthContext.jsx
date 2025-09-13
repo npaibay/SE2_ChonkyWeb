@@ -37,9 +37,9 @@ export function AuthProvider({ children }) {
     if (message) sessionStorage.setItem("authError", message);
 
     try {
-      navigate("/"); // ✅ uses hook normally
+      navigate("/login"); // ✅ uses hook normally
     } catch {
-      window.location.href = "/"; // ✅ fallback if no Router
+      window.location.href = "/login"; // ✅ fallback if no Router
     }
   };
 

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardRouter from "./pages/DashboardRouter";
 import UpdatePassword from "./pages/UpdatePassword";
@@ -14,7 +15,7 @@ import "react-toastify/dist/ReactToastify.css";
 function PrivateRoute({ children }) {
   const { user } = useAuth();
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   return children;
 }
@@ -23,7 +24,7 @@ function PrivateRoute({ children }) {
 function AdminRoute({ children }) {
   const { user } = useAuth();
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   if (!user.is_admin) {
     return <Navigate to="/dashboard" replace />;
@@ -35,10 +36,11 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen w-full flex flex-col bg-gray-900 text-white px-4 sm:px-6 md:px-8 overflow-x-hidden">
+        <div className="min-h-screen w-full flex flex-col text-white overflow-x-hidden">
           <Routes>
             {/* Public */}
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
 
             {/* Shared user/admin */}
             <Route

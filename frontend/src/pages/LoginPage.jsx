@@ -52,7 +52,7 @@ function LoginPage() {
         login({ access, refresh }, me);
       } else {
         sessionStorage.setItem("authError", "Failed to load user profile.");
-        navigate("/");
+        navigate("/login");
         return;
       }
 
@@ -128,7 +128,7 @@ function LoginPage() {
             disabled={loading}
             className={`w-full ${
               loading ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
-            } text-white font-semibold py-2 sm:py-2.5 rounded transition text-sm sm:text-base`}
+            } text-white font-semibold py-2 sm:py-2.5 btn-rounded-3xl transition text-sm sm:text-base`}
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>

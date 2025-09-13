@@ -10,9 +10,9 @@ function NotFound() {
 
       <Link
         to="/"
-        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition"
+        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold btn-rounded-3xl shadow-md transition"
       >
-        ⬅ Go back to Login
+        ⬅ Go back to previous page
       </Link>
     </div>
   );

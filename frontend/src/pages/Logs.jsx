@@ -189,7 +189,7 @@ function Logs() {
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className={`px-3 py-1 rounded ${
+            className={`px-3 py-1 btn-rounded-3xl ${
               page === 1
                 ? "bg-gray-600 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -205,7 +205,7 @@ function Logs() {
           <button
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className={`px-3 py-1 rounded ${
+            className={`px-3 py-1 btn-rounded-3xl ${
               page === totalPages
                 ? "bg-gray-600 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700 text-white"

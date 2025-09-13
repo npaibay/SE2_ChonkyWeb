@@ -52,7 +52,7 @@ function DeactivateAccount() {
 
         <button
           type="submit"
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded font-semibold transition"
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 btn-rounded-3xl font-semibold transition"
         >
           Deactivate
         </button>
