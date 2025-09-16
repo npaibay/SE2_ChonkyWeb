@@ -31,6 +31,8 @@ INSTALLED_APPS = [
 
     # local apps
     "users",
+    "products",
+    "petprofiles",
 ]
 
 MIDDLEWARE = [

@@ -10,6 +10,9 @@ import ManageRoles from "./pages/ManageRoles";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
+import AdminServiceManager from "./pages/AdminServiceManager";
+import AdminProductManager from "./pages/AdminProductManager";
+import AdminPetProfileManager from "./pages/AdminPetProfileManager";
 
 // 🔒 Require any authenticated user
 function PrivateRoute({ children }) {
@@ -93,6 +96,9 @@ function App() {
                 </AdminRoute>
               }
             />
+            <Route path="/admin/services/create" element={<AdminServiceManager />} />
+            <Route path="/admin/products" element={<AdminProductManager />} />
+            <Route path="/admin/pet-profiles" element={<AdminPetProfileManager />} />
 
             {/* 404 fallback */}
             <Route path="*" element={<NotFound />} />

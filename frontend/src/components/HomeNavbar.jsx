@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import logo from "../assets/pictures/chonky_boi-logo-01.png";
 
-function HomeNavbar() {
+function HomeNavbar(props) {
   return (
     <nav className="bg-chonky-brown-50 font-martel">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -17,7 +17,6 @@ function HomeNavbar() {
             </Link>
             <span className="text-whitish font-bold text-[24px]">Home</span>
           </div>
-
 
           <div className="flex items-center space-x-3">
             <Link
@@ -38,12 +37,14 @@ function HomeNavbar() {
             >
               About us
             </Link>
-            <Link
-              to="/login"
-              className="bg-poop hover:bg-poop-hover text-whitish px-4 py-2 btn-rounded-3xl font-bold transition-colors border-1 border-poop"
-            >
-              Login
-            </Link>
+            {!props.hideLoginButton && (
+              <Link
+                to="/login"
+                className="bg-yellow hover:bg-yellow/90 text-default-text px-6 py-3 btn-rounded-3xl font-bold transition-colors"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

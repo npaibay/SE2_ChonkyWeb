@@ -64,6 +64,7 @@ body, html, #root {
 body {
   display: flex;
   flex-direction: column;
+  background-color: var(--color-bg-hero); /* updated for global background */
 }
 
 h1 {

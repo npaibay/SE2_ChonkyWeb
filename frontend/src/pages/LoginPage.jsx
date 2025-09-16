@@ -67,8 +67,8 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4 sm:px-6 md:px-8">
-      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-gray-800 p-6 sm:p-8 md:p-10 rounded-xl shadow-md">
+    <div className="min-h-screen flex items-center justify-center bg-chonky-brown-50 px-4 sm:px-6 md:px-8">
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-gray-800/50 p-6 sm:p-8 md:p-10 rounded-xl shadow-md">
         <div className="flex justify-center mb-4 sm:mb-6">
           <img
             src={logo}
@@ -88,7 +88,7 @@ function LoginPage() {
           <div>
             <label
               htmlFor="identifier"
-              className="block mb-1 font-medium text-white text-sm sm:text-base"
+              className="block mb-1 font-medium text-default-text text-sm sm:text-base"
             >
               Email address or Username
             </label>
@@ -99,7 +99,7 @@ function LoginPage() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
-              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded bg-gray-700/60 border border-poop text-default-text placeholder-whitish text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-yellow"
               autoComplete="username"
             />
           </div>
@@ -107,7 +107,7 @@ function LoginPage() {
           <div>
             <label
               htmlFor="password"
-              className="block mb-1 font-medium text-white text-sm sm:text-base"
+              className="block mb-1 font-medium text-default-text text-sm sm:text-base"
             >
               Password
             </label>
@@ -118,7 +118,7 @@ function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded bg-gray-700/60 border border-poop text-default-text placeholder-whitish text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-yellow"
               autoComplete="current-password"
             />
           </div>
@@ -127,16 +127,18 @@ function LoginPage() {
             type="submit"
             disabled={loading}
             className={`w-full ${
-              loading ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
-            } text-white font-semibold py-2 sm:py-2.5 btn-rounded-3xl transition text-sm sm:text-base`}
+              loading
+                ? "bg-yellow/80"
+                : "bg-yellow hover:bg-yellow/90"
+            } text-default-text font-semibold py-2 sm:py-2.5 btn-rounded-3xl transition text-sm sm:text-base`}
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-gray-300">
+        <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-whitish">
           <span>New user? </span>
-          <Link to="/create-user" className="text-blue-400 hover:underline">
+          <Link to="/create-user" className="text-yellow font-bold hover:underline">
             Create an account
           </Link>
         </div>
