@@ -1,25 +1,17 @@
-function Modal({ title, onClose, children }) {
+import React from "react";
+
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 transition-opacity duration-300">
-      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg relative animate-scaleIn">
-        {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-gray-800/90 rounded-xl shadow-lg p-6 relative max-w-2xl w-full">
         <button
           onClick={onClose}
-          className="absolute top-2 right-3 text-xl text-white hover:text-red-400 focus:outline-none"
-          aria-label="Close modal"
+          className="absolute top-3 right-3 text-xl text-whitish hover:text-yellow font-bold"
         >
-          &times;
+          ×
         </button>
-
-        {/* Title */}
-        {title && (
-          <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        )}
-
-        {/* Content */}
-        <div>
-          {children}
-        </div>
+        {children}
       </div>
     </div>
   );

@@ -1,10 +1,18 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import HomeNavbar from "../components/HomeNavbar";
 import { useAuth } from "../context/AuthContext";
 import LogoutButton from "./LogoutButton";
+import Modal from "../components/Modal";
+import AdminPetProfileManager from "./AdminPetProfileManager"; // Import the manager
+import AdminServiceManager from "./AdminServiceManager"; // Import the service manager
+import AdminProductManager from "./AdminProductManager"; // Import the product manager
 
 function AdminDashboard() {
   const { user } = useAuth();
+  const [openPetProfile, setOpenPetProfile] = useState(false);
+  const [openService, setOpenService] = useState(false);
+  const [openProduct, setOpenProduct] = useState(false); // State for product manager modal
 
   if (!user) return null;
 
@@ -52,30 +60,42 @@ function AdminDashboard() {
               🛡 Manage Roles
             </Link>
 
-            {/* New Button: Add/Create Service */}
-            <Link
-              to="/admin/services/create"
-              className="bg-poop hover:bg-poop-hover text-default-text px-4 py-2 btn-rounded font-medium transition flex items-center justify-center"
-            >
-              🛠 Add Service
-            </Link>
-
-            {/* New Buttons */}
-            <Link
-              to="/admin/products"
+            {/* Product Manager as a modal */}
+            <button
+              onClick={() => setOpenProduct(true)}
               className="bg-yellow hover:bg-yellow/90 text-default-text px-4 py-2 btn-rounded font-medium transition flex items-center justify-center"
             >
               🛒 Product Manager
-            </Link>
-            <Link
-              to="/admin/pet-profiles"
+            </button>
+            {/* Pet Profile Manager as a modal */}
+            <button
+              onClick={() => setOpenPetProfile(true)}
               className="bg-peach hover:bg-peach/90 text-default-text px-4 py-2 btn-rounded font-medium transition flex items-center justify-center"
             >
               🐾 Pet Profile Manager
-            </Link>
+            </button>
+            {/* Service Manager as a modal */}
+            <button
+              onClick={() => setOpenService(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-default-text px-4 py-2 btn-rounded font-medium transition flex items-center justify-center"
+            >
+              ⚙️ Service Manager
+            </button>
           </div>
         </div>
       </div>
+      {/* Modal for Product Manager */}
+      <Modal open={openProduct} onClose={() => setOpenProduct(false)}>
+        <AdminProductManager asModal onClose={() => setOpenProduct(false)} />
+      </Modal>
+      {/* Modal for Pet Profile Manager */}
+      <Modal open={openPetProfile} onClose={() => setOpenPetProfile(false)}>
+        <AdminPetProfileManager asModal onClose={() => setOpenPetProfile(false)} />
+      </Modal>
+      {/* Modal for Service Manager */}
+      <Modal open={openService} onClose={() => setOpenService(false)}>
+        <AdminServiceManager asModal onClose={() => setOpenService(false)} />
+      </Modal>
     </div>
   );
 }
