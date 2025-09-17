@@ -1,4 +1,8 @@
 # SE2_ChonkyWeb
+Developed by
+Kauri Lorraine Flores
+Noah Philippe Ibay
+Kyle Daniel Tan
 
 # For React.js (Frontend)
 
