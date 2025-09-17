@@ -2,7 +2,7 @@
 Developed by:
     Kauri Lorraine Flores,
     Noah Philippe Ibay,
-    Kyle Daniel Tan,
+    Kyle Daniel Tan
 
 # For React.js (Frontend)
 
