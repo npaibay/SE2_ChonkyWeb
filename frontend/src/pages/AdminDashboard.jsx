@@ -18,7 +18,6 @@ function AdminDashboard() {
 
   return (
     <div className="min-h-screen flex flex-col bg-chonky-brown-50">
-      <HomeNavbar hideLoginButton />
       <div className="flex flex-col items-center justify-start flex-1 p-8">
         <div className="w-full max-w-4xl bg-gray-800/50 rounded-xl shadow-md p-8">
           {/* Header */}

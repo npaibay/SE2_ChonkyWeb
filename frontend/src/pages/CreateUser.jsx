@@ -38,68 +38,90 @@ function CreateUser() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6 text-white">Create User</h1>
+    <div className="min-h-screen flex flex-col bg-chonky-brown-50">
+      <main className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md p-8 bg-bg-bottom rounded-xl shadow-md">
+          <h1 className="text-2xl font-bold mb-6 text-default-text text-center">
+            Create User
+          </h1>
 
-        <form onSubmit={handleCreate} className="space-y-5">
-          <div>
-            <label className="block mb-1 font-medium text-white">Username</label>
-            <input
-              type="text"
-              placeholder="Enter username..."
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <form onSubmit={handleCreate} className="space-y-5">
+            <div>
+              <label
+                htmlFor="username"
+                className="block mb-1 font-medium text-default-text"
+              >
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                placeholder="Enter username..."
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full px-4 py-2 rounded bg-chonky-brown-50 text-default-text border-none focus:ring-2 focus:ring-yellow"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block mb-1 font-medium text-default-text"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="Enter email..."
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2 rounded bg-chonky-brown-50 text-default-text border-none focus:ring-2 focus:ring-yellow"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block mb-1 font-medium text-default-text"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Enter password..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-2 rounded bg-chonky-brown-50 text-default-text border-none focus:ring-2 focus:ring-yellow"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-yellow hover:bg-yellow/90 text-default-text py-2 btn-rounded-3xl font-semibold transition"
+            >
+              Create
+            </button>
+          </form>
+
+          {msg && (
+            <p className="mt-4 text-sm text-red-400 font-medium">{msg}</p>
+          )}
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-sm text-yellow hover:underline"
+            >
+              ⬅ Back
+            </button>
           </div>
-
-          <div>
-            <label className="block mb-1 font-medium text-white">Email</label>
-            <input
-              type="email"
-              placeholder="Enter email..."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 font-medium text-white">Password</label>
-            <input
-              type="password"
-              placeholder="Enter password..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 btn-rounded-3xl font-semibold transition"
-          >
-            Create
-          </button>
-        </form>
-
-        {msg && (
-          <p className="mt-4 text-sm text-red-400 font-medium">{msg}</p>
-        )}
-
-        <div className="mt-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-sm text-blue-400 hover:underline"
-          >
-            ⬅ Back
-          </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
