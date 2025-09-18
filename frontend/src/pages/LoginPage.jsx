@@ -23,10 +23,10 @@ function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
-
     setLoading(true);
 
     try {
+      // Step 1: Get tokens
       const res = await fetch("http://127.0.0.1:8000/api/token/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,20 +42,27 @@ function LoginPage() {
 
       const { access, refresh } = await res.json();
 
-      // fetch profile
+      // ✅ Step 2: Save tokens in localStorage
+      localStorage.setItem("accessToken", access);
+      localStorage.setItem("refreshToken", refresh);
+
+      // Step 3: Fetch profile with the new access token
       const meRes = await fetch("http://127.0.0.1:8000/api/me/", {
         headers: { Authorization: `Bearer ${access}` },
       });
 
-      if (meRes.ok) {
-        const me = await meRes.json();
-        login({ access, refresh }, me);
-      } else {
+      if (!meRes.ok) {
         sessionStorage.setItem("authError", "Failed to load user profile.");
         navigate("/login");
         return;
       }
 
+      const me = await meRes.json();
+
+      // Step 4: Update context
+      login({ access, refresh }, me);
+
+      // Step 5: Success → redirect
       (toast?.success || alert)("Login successful!");
       navigate("/dashboard");
     } catch (err) {
@@ -127,9 +134,7 @@ function LoginPage() {
             type="submit"
             disabled={loading}
             className={`w-full ${
-              loading
-                ? "bg-yellow/80"
-                : "bg-yellow hover:bg-yellow/90"
+              loading ? "bg-yellow/80" : "bg-yellow hover:bg-yellow/90"
             } text-default-text font-semibold py-2 sm:py-2.5 btn-rounded-3xl transition text-sm sm:text-base`}
           >
             {loading ? "Signing in..." : "Sign in"}
@@ -138,7 +143,10 @@ function LoginPage() {
 
         <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-whitish">
           <span>New user? </span>
-          <Link to="/create-user" className="text-yellow font-bold hover:underline">
+          <Link
+            to="/create-user"
+            className="text-yellow font-bold hover:underline"
+          >
             Create an account
           </Link>
         </div>

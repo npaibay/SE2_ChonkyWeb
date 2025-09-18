@@ -185,3 +185,45 @@ class LogsView(APIView):
             for log in logs
         ]
         return Response(data)
+
+# --- NEW: list users and update roles (admin only) ---
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions, status
+
+class UsersListView(APIView):
+    # must be authenticated AND admin to list users
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def get(self, request):
+        qs = User.objects.all().order_by("username")
+        data = [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "is_staff": u.is_staff,
+                "is_superuser": u.is_superuser,
+            }
+            for u in qs
+        ]
+        return Response(data, status=200)
+
+
+class UpdateRoleView(APIView):
+    # only admins can change roles
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def post(self, request):
+        username = request.data.get("username")
+        is_staff = bool(request.data.get("is_staff"))
+        is_superuser = bool(request.data.get("is_superuser"))
+
+        if not username:
+            return Response({"detail": "Missing username"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = get_object_or_404(User, username=username)
+        user.is_staff = is_staff
+        user.is_superuser = is_superuser
+        user.save()
+
+        return Response({"detail": "Roles updated successfully."}, status=status.HTTP_200_OK)
