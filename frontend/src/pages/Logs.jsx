@@ -1,232 +1,230 @@
-import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useMemo, useState } from "react";
+import { apiGet } from "../utils/api";
 
-function Logs() {
-  const [logs, setLogs] = useState([]);
-  const [msg, setMsg] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [sortOrder, setSortOrder] = useState("desc"); // newest first by default
-  const [actionFilter, setActionFilter] = useState("ALL");
-  const navigate = useNavigate();
-  const { access, logout } = useAuth();
+const ACTION_COLORS = {
+  LOGIN: "bg-emerald-900/50 text-emerald-200 ring-1 ring-emerald-700/40",
+  LOGOUT: "bg-sky-900/50 text-sky-200 ring-1 ring-sky-700/40",
+  FAILED_LOGIN: "bg-rose-900/50 text-rose-200 ring-1 ring-rose-700/40",
+  PASSWORD_CHANGE: "bg-amber-900/50 text-amber-200 ring-1 ring-amber-700/40",
+  CREATE_USER: "bg-indigo-900/50 text-indigo-200 ring-1 ring-indigo-700/40",
+  DEACTIVATE_USER: "bg-fuchsia-900/50 text-fuchsia-200 ring-1 ring-fuchsia-700/40",
+};
 
-  useEffect(() => {
-    if (!access) {
-      setMsg("Unauthorized – please log in again.");
-      return;
-    }
+const ACTIONS = [
+  "All actions",
+  "LOGIN",
+  "LOGOUT",
+  "FAILED_LOGIN",
+  "PASSWORD_CHANGE",
+  "CREATE_USER",
+  "DEACTIVATE_USER",
+];
 
-    fetch("http://127.0.0.1:8000/api/logs/", {
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          logout("Access token expired. Please log in again.");
-          throw new Error("Unauthorized");
-        }
-        if (!res.ok) throw new Error("Failed to load logs");
-        return res.json();
-      })
-      .then(setLogs)
-      .catch(() => setMsg("Could not load logs"));
-  }, [access, logout]);
-
-  // ✅ derive filtered + sorted logs
-  const filteredLogs = useMemo(() => {
-    let result = [...logs];
-
-    // filter by action
-    if (actionFilter !== "ALL") {
-      result = result.filter((log) => log.action === actionFilter);
-    }
-
-    // sort by time
-    result.sort((a, b) =>
-      sortOrder === "desc"
-        ? new Date(b.timestamp) - new Date(a.timestamp)
-        : new Date(a.timestamp) - new Date(b.timestamp)
-    );
-
-    return result;
-  }, [logs, sortOrder, actionFilter]);
-
-  // ✅ Pagination
-  const totalPages = Math.ceil(filteredLogs.length / pageSize);
-  const start = (page - 1) * pageSize;
-  const currentLogs = filteredLogs.slice(start, start + pageSize);
-
-  // ✅ Collect unique actions for dropdown
-  const actionOptions = ["ALL", ...new Set(logs.map((log) => log.action))];
-
+function Badge({ action }) {
+  const cls = ACTION_COLORS[action] ?? "bg-gray-800/60 text-gray-200 ring-1 ring-gray-700/50";
   return (
-    <div className="w-full max-w-6xl mx-auto p-6">
-      {/* Page Header */}
-      <h1 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
-        📜 Security Logs
-      </h1>
-
-      {/* Error Message */}
-      {msg && <p className="mb-4 text-red-400 font-medium text-sm">{msg}</p>}
-
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
-        {/* Page size */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="pageSize" className="text-gray-300 text-sm">
-            Show:
-          </label>
-          <select
-            id="pageSize"
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(1);
-            }}
-            className="bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-sm"
-          >
-            <option value={10}>10 logs</option>
-            <option value={30}>30 logs</option>
-            <option value={50}>50 logs</option>
-          </select>
-        </div>
-
-        {/* Sort */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="sort" className="text-gray-300 text-sm">
-            Sort:
-          </label>
-          <select
-            id="sort"
-            value={sortOrder}
-            onChange={(e) => {
-              setSortOrder(e.target.value);
-              setPage(1);
-            }}
-            className="bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-sm"
-          >
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-          </select>
-        </div>
-
-        {/* Action Filter */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="action" className="text-gray-300 text-sm">
-            Action:
-          </label>
-          <select
-            id="action"
-            value={actionFilter}
-            onChange={(e) => {
-              setActionFilter(e.target.value);
-              setPage(1);
-            }}
-            className="bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-sm"
-          >
-            {actionOptions.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt === "ALL" ? "All actions" : opt}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Logs Table */}
-      <div className="overflow-x-auto rounded-lg shadow-md mb-6">
-        <table className="min-w-full bg-gray-800 text-white text-sm border border-gray-700">
-          <thead className="bg-gray-700 text-left text-sm uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-3 border-b border-gray-600">User</th>
-              <th className="px-4 py-3 border-b border-gray-600">Action</th>
-              <th className="px-4 py-3 border-b border-gray-600">Time</th>
-              <th className="px-4 py-3 border-b border-gray-600">IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentLogs.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="4"
-                  className="text-center px-4 py-6 text-gray-400"
-                >
-                  No logs available
-                </td>
-              </tr>
-            ) : (
-              currentLogs.map((log, idx) => (
-                <tr
-                  key={idx}
-                  className={idx % 2 === 0 ? "bg-gray-900" : "bg-gray-800"}
-                >
-                  <td className="px-4 py-2 border-t border-gray-700">
-                    {log.user}
-                  </td>
-                  <td className="px-4 py-2 border-t border-gray-700">
-                    {log.action}
-                  </td>
-                  <td className="px-4 py-2 border-t border-gray-700">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 border-t border-gray-700">
-                    {log.ip}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Controls */}
-      {filteredLogs.length > 0 && (
-        <div className="flex justify-between items-center text-sm text-gray-300">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-            className={`px-3 py-1 btn-rounded-3xl ${
-              page === 1
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-          >
-            ⬅ Prev
-          </button>
-
-          <span>
-            Page {page} of {totalPages}
-          </span>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className={`px-3 py-1 btn-rounded-3xl ${
-              page === totalPages
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-          >
-            Next ➡
-          </button>
-        </div>
-      )}
-
-      {/* Back Button */}
-      <div className="mt-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm text-blue-400 hover:underline"
-        >
-          ⬅ Back
-        </button>
-      </div>
-    </div>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>
+      {action}
+    </span>
   );
 }
 
-export default Logs;
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-gray-700" /></td>
+      <td className="px-4 py-3"><div className="h-5 w-28 rounded bg-gray-700" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-40 rounded bg-gray-700" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-gray-700" /></td>
+    </tr>
+  );
+}
+
+export default function Logs() {
+  const [raw, setRaw] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(true);
+
+  const [limit, setLimit] = useState(10);
+  const [sortDir, setSortDir] = useState("new"); // "new" | "old"
+  const [action, setAction] = useState("All actions");
+
+  async function load() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiGet("/api/users/logs/");
+      if (!res.ok) {
+        if (res.status === 401) throw new Error("Unauthorized — please sign in again.");
+        if (res.status === 403) throw new Error("Forbidden — admin only.");
+        const txt = await res.text();
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setRaw(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || "Could not load logs");
+      setRaw([]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const rows = useMemo(() => {
+    if (!raw) return [];
+    let out = [...raw];
+    if (action !== "All actions") out = out.filter((r) => r.action === action);
+    out.sort((a, b) => {
+      const ta = Date.parse(a.timestamp);
+      const tb = Date.parse(b.timestamp);
+      return sortDir === "new" ? tb - ta : ta - tb;
+    });
+    return out.slice(0, limit);
+  }, [raw, action, sortDir, limit]);
+
+  return (
+    <div className="space-y-4">
+      {/* Dark content wrapper */}
+      <div className="rounded-2xl bg-[#1b1b1f] border border-white/10 p-5 shadow-xl">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🧾</span>
+            <div>
+              <h2 className="text-xl font-semibold text-white">System Logs</h2>
+              <p className="text-sm text-white/60">
+                Audit events for sign-ins, password changes, and admin actions.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={load}
+              className="px-3 py-2 rounded-lg bg-white/10 text-white hover:bg-white/15 active:scale-95 transition"
+              title="Reload latest logs"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="mt-4 flex flex-wrap gap-3 items-center">
+          <label className="text-sm text-white/80">
+            Show:&nbsp;
+            <select
+              className="rounded-md border border-white/10 bg-[#111317] text-white px-2 py-1 text-sm"
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+            >
+              {[10, 25, 50].map((n) => (
+                <option key={n} value={n}>
+                  {n} logs
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm text-white/80">
+            Sort:&nbsp;
+            <select
+              className="rounded-md border border-white/10 bg-[#111317] text-white px-2 py-1 text-sm"
+              value={sortDir}
+              onChange={(e) => setSortDir(e.target.value)}
+            >
+              <option value="new">Newest first</option>
+              <option value="old">Oldest first</option>
+            </select>
+          </label>
+
+          <label className="text-sm text-white/80 ml-auto">
+            Action:&nbsp;
+            <select
+              className="rounded-md border border-white/10 bg-[#111317] text-white px-2 py-1 text-sm"
+              value={action}
+              onChange={(e) => setAction(e.target.value)}
+            >
+              {ACTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {/* Table */}
+        <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+          <table className="min-w-full text-sm">
+            <thead className="bg-[#121318] text-white/80">
+              <tr className="text-left">
+                <th className="px-4 py-3 font-semibold">User</th>
+                <th className="px-4 py-3 font-semibold">Action</th>
+                <th className="px-4 py-3 font-semibold">Time</th>
+                <th className="px-4 py-3 font-semibold">IP</th>
+              </tr>
+            </thead>
+            <tbody className="bg-[#0d0f14] text-white/90 divide-y divide-white/5">
+              {busy && (
+                <>
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                </>
+              )}
+
+              {!busy && error && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-rose-300">
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!busy && !error && rows.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-white/60">
+                    No logs available
+                  </td>
+                </tr>
+              )}
+
+              {!busy &&
+                !error &&
+                rows.map((r, idx) => (
+                  <tr key={`${r.timestamp}-${idx}`} className="hover:bg-white/5">
+                    <td className="px-4 py-3 font-medium">{r.user || "Unknown"}</td>
+                    <td className="px-4 py-3">
+                      <Badge action={r.action} />
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(r.timestamp).toLocaleString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-4 py-3">{r.ip || "—"}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <button
+        onClick={() => window.history.back()}
+        className="text-sm text-white/70 hover:text-white hover:underline"
+      >
+        ← Back
+      </button>
+    </div>
+  );
+}

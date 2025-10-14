@@ -1,8 +1,14 @@
+const API_BASE = (import.meta?.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
+
+function withBase(url) {
+  // absolute (http/https) => leave as-is; otherwise prefix API_BASE
+  return /^https?:\/\//i.test(url) ? url : `${API_BASE}${url}`;
+}
+
 export async function apiFetch(url, options = {}) {
   const access = localStorage.getItem("access");
   const refresh = localStorage.getItem("refresh");
 
-  // headers (don’t force Content-Type for FormData)
   const headers = new Headers(options.headers || {});
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
 
@@ -14,17 +20,16 @@ export async function apiFetch(url, options = {}) {
     headers.set("Authorization", `Bearer ${access}`);
   }
 
-  // normalize JSON body
   let body = options.body;
   if (!isFormData && body && typeof body === "object" && !(body instanceof Blob)) {
     body = JSON.stringify(body);
   }
 
-  let res = await fetch(url, { ...options, headers, body });
+  let res = await fetch(withBase(url), { ...options, headers, body });
 
+  // Try refresh once
   if (res.status === 401 && refresh) {
-    // try refresh once
-    const refreshRes = await fetch("/api/users/token/refresh/", {
+    const refreshRes = await fetch(withBase("/api/users/token/refresh/"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ refresh }),
@@ -36,12 +41,11 @@ export async function apiFetch(url, options = {}) {
         localStorage.setItem("access", data.access);
         const retryHeaders = new Headers(headers);
         retryHeaders.set("Authorization", `Bearer ${data.access}`);
-        res = await fetch(url, { ...options, headers: retryHeaders, body });
+        res = await fetch(withBase(url), { ...options, headers: retryHeaders, body });
       }
     }
 
     if (res.status === 401) {
-      // still unauthorized → clear and let route guards redirect
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
       localStorage.removeItem("user");
@@ -51,7 +55,7 @@ export async function apiFetch(url, options = {}) {
   return res;
 }
 
-export async function apiGet(url)    { return apiFetch(url, { method: "GET" }); }
-export async function apiPost(url,b) { return apiFetch(url, { method: "POST", body: b }); }
-export async function apiPatch(url,b){ return apiFetch(url, { method: "PATCH", body: b }); }
-export async function apiDelete(url,b){return apiFetch(url, { method: "DELETE", body: b }); }
+export const apiGet = (url) => apiFetch(url, { method: "GET" });
+export const apiPost = (url, json) => apiFetch(url, { method: "POST", body: json });
+export const apiPatch = (url, json) => apiFetch(url, { method: "PATCH", body: json });
+export const apiDelete = (url, json) => apiFetch(url, { method: "DELETE", body: json });
