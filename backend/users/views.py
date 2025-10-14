@@ -1,9 +1,14 @@
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+
 from rest_framework import permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+
 from .models import SecurityLog
 
 User = get_user_model()
@@ -27,6 +32,7 @@ def serialize_user(user: User):
 
 # =============================
 # JWT login: email OR username
+# POST /api/users/token/  { "identifier": "...", "password": "..." }
 # =============================
 class TokenObtainView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -39,19 +45,16 @@ class TokenObtainView(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        identifier = serializer.validated_data["identifier"]
+        identifier = serializer.validated_data["identifier"].strip()
         password = serializer.validated_data["password"]
 
-        # resolve identifier → username if it's an email
-        username_value = identifier
-        try:
-            u = User.objects.get(email__iexact=identifier)
-            username_value = u.username
-        except User.DoesNotExist:
-            pass
+        # Find by username OR email (case-insensitive)
+        user = User.objects.filter(
+            Q(username__iexact=identifier) | Q(email__iexact=identifier)
+        ).first()
 
-        user = authenticate(username=username_value, password=password)
-        if not user:
+        # Verify password directly (avoids backend misconfig issues)
+        if not user or not user.check_password(password):
             SecurityLog.objects.create(
                 user=None, action="FAILED_LOGIN", ip_address=get_client_ip(request)
             )
@@ -60,7 +63,7 @@ class TokenObtainView(APIView):
         if not user.is_active:
             return Response({"detail": "Inactive account"}, status=status.HTTP_403_FORBIDDEN)
 
-        # issue tokens
+        # Issue tokens + optional custom claims
         refresh = RefreshToken.for_user(user)
         refresh["username"] = user.username
         refresh["email"] = user.email
@@ -68,27 +71,24 @@ class TokenObtainView(APIView):
 
         SecurityLog.objects.create(user=user, action="LOGIN", ip_address=get_client_ip(request))
 
-        return Response({
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-        })
+        return Response({"refresh": str(refresh), "access": str(refresh.access_token)})
 
 
 # =============================
 # Logout (blacklist refresh)
+# POST /api/users/logout/  { "refresh": "<token>" }
 # =============================
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         refresh_token = request.data.get("refresh")
-
         if not refresh_token:
             return Response({"detail": "Refresh token required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             token = RefreshToken(refresh_token)
-            token.blacklist()  # ✅ mark as invalid
+            token.blacklist()
             SecurityLog.objects.create(user=request.user, action="LOGOUT", ip_address=get_client_ip(request))
             return Response({"detail": "Logged out successfully"})
         except (TokenError, InvalidToken):
@@ -171,6 +171,7 @@ class DeactivateUserView(APIView):
 
 
 class LogsView(APIView):
+    """Admin-only: last 50 security logs."""
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
@@ -186,12 +187,9 @@ class LogsView(APIView):
         ]
         return Response(data)
 
-# --- NEW: list users and update roles (admin only) ---
-from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status
 
+# --- Admin: list users & update roles ---
 class UsersListView(APIView):
-    # must be authenticated AND admin to list users
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
 
     def get(self, request):
@@ -206,11 +204,10 @@ class UsersListView(APIView):
             }
             for u in qs
         ]
-        return Response(data, status=200)
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class UpdateRoleView(APIView):
-    # only admins can change roles
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
 
     def post(self, request):

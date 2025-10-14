@@ -20,54 +20,67 @@ function LoginPage() {
     }
   }, []);
 
+  const notifyErr = (msg) =>
+    (toast?.error ? toast.error(msg) : alert(msg));
+  const notifyOk = (msg) =>
+    (toast?.success ? toast.success(msg) : alert(msg));
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
     setLoading(true);
+    setAuthError(null);
 
     try {
-      // Step 1: Get tokens
-      const res = await fetch("http://127.0.0.1:8000/api/token/", {
+      // 1) Get tokens (email OR username supported by your backend)
+      const tokenRes = await fetch("/api/users/token/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        (toast?.error || alert)(data.detail || "Invalid credentials");
+      if (!tokenRes.ok) {
+        const data = await tokenRes.json().catch(() => ({}));
+        const msg = data?.detail || "Invalid credentials";
+        setAuthError(msg);
+        notifyErr(msg);
         setLoading(false);
         return;
       }
 
-      const { access, refresh } = await res.json();
+      const { access, refresh } = await tokenRes.json();
 
-      // ✅ Step 2: Save tokens in localStorage
-      localStorage.setItem("accessToken", access);
-      localStorage.setItem("refreshToken", refresh);
-
-      // Step 3: Fetch profile with the new access token
-      const meRes = await fetch("http://127.0.0.1:8000/api/me/", {
-        headers: { Authorization: `Bearer ${access}` },
+      // 2) Fetch profile with the access token
+      const meRes = await fetch("/api/users/me/", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access}`,
+        },
       });
 
       if (!meRes.ok) {
-        sessionStorage.setItem("authError", "Failed to load user profile.");
-        navigate("/login");
+        setAuthError("Failed to load user profile.");
+        notifyErr("Failed to load user profile.");
+        setLoading(false);
         return;
       }
 
-      const me = await meRes.json();
+      const me = await meRes.json(); // { id, username, email, is_admin }
 
-      // Step 4: Update context
+      // 3) Persist tokens with keys that your apiFetch expects
+      localStorage.setItem("access", access);
+      localStorage.setItem("refresh", refresh);
+
+      // 4) Update context (your AuthContext.login may also navigate)
       login({ access, refresh }, me);
 
-      // Step 5: Success → redirect
-      (toast?.success || alert)("Login successful!");
-      navigate("/dashboard");
+      // 5) Navigate to dashboard (safe even if login() already navigates)
+      notifyOk("Login successful!");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
-      sessionStorage.setItem("authError", "Server error, please try again.");
+      setAuthError("Server error, please try again.");
+      notifyErr("Server error, please try again.");
     } finally {
       setLoading(false);
     }
@@ -143,10 +156,7 @@ function LoginPage() {
 
         <div className="mt-5 sm:mt-6 text-center text-xs sm:text-sm text-whitish">
           <span>New user? </span>
-          <Link
-            to="/create-user"
-            className="text-yellow font-bold hover:underline"
-          >
+          <Link to="/create-user" className="text-yellow font-bold hover:underline">
             Create an account
           </Link>
         </div>

@@ -1,41 +1,20 @@
+// src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardRouter from "./pages/DashboardRouter";
-import UpdatePassword from "./pages/UpdatePassword";
-import CreateUser from "./pages/CreateUser";
-import DeactivateAccount from "./pages/DeactivateAccount";
-import Logs from "./pages/Logs";
-import ManageRoles from "./pages/ManageRoles";
 import NotFound from "./pages/NotFound";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
-import AdminServiceManager from "./pages/AdminServiceManager";
-import AdminProductManager from "./pages/AdminProductManager";
-import AdminPetProfileManager from "./pages/AdminPetProfileManager";
 
-// 🔒 Require any authenticated user
-function PrivateRoute({ children }) {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-}
+// Guards
+import PrivateRoute from "./components/PrivateRoute";
+import AdminRoute from "./components/AdminRoute";
 
-// 🔒 Require admin only
-function AdminRoute({ children }) {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  if (!user.is_admin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return children;
-}
+// (Optional) still have a dedicated page for this
+import DeactivateAccount from "./pages/DeactivateAccount";
 
-function App() {
+export default function App() {
   return (
     <Router>
       <AuthProvider>
@@ -45,68 +24,35 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Shared user/admin */}
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <DashboardRouter />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/update-password"
-              element={
-                <PrivateRoute>
-                  <UpdatePassword />
-                </PrivateRoute>
-              }
-            />
+            {/* Protected (user OR admin) */}
+            <Route element={<PrivateRoute />}>
+              {/* NOTE: /* allows nested routes inside DashboardRouter */}
+              <Route path="/dashboard/*" element={<DashboardRouter />} />
+            </Route>
 
-            {/* Admin-only */}
-            <Route
-              path="/create-user"
-              element={
-                <AdminRoute>
-                  <CreateUser />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/deactivate-account"
-              element={
-                <AdminRoute>
-                  <DeactivateAccount />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/logs"
-              element={
-                <AdminRoute>
-                  <Logs />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/manage-roles"
-              element={
-                <AdminRoute>
-                  <ManageRoles />
-                </AdminRoute>
-              }
-            />
-            <Route path="/admin/services/create" element={<AdminServiceManager />} />
-            <Route path="/admin/products" element={<AdminProductManager />} />
-            <Route path="/admin/pet-profiles" element={<AdminPetProfileManager />} />
+            {/* --- Redirect old top-level admin URLs into the dashboard layout --- */}
+            <Route path="/logs" element={<Navigate to="/dashboard/logs" replace />} />
+            <Route path="/create-user" element={<Navigate to="/dashboard/create-user" replace />} />
+            <Route path="/manage-roles" element={<Navigate to="/dashboard/manage-roles" replace />} />
+            <Route path="/admin/products" element={<Navigate to="/dashboard/products" replace />} />
+            <Route path="/admin/services/create" element={<Navigate to="/dashboard/services" replace />} />
+            <Route path="/admin/pet-profiles" element={<Navigate to="/dashboard/pet-profiles" replace />} />
+            <Route path="/update-password" element={<Navigate to="/dashboard/update-password" replace />} />
+
+            {/* If you still need a separate admin-only route outside dashboard, keep it here */}
+            <Route element={<AdminRoute />}>
+              <Route path="/deactivate-account" element={<DeactivateAccount />} />
+            </Route>
 
             {/* 404 fallback */}
             <Route path="*" element={<NotFound />} />
+            {/*
+              Prefer redirect instead of a 404?
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            */}
           </Routes>
         </div>
       </AuthProvider>
     </Router>
   );
 }
-
-export default App;

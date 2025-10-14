@@ -1,51 +1,75 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
-
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
-  });
-  const [access, setAccess] = useState(localStorage.getItem("access"));
-  const [refresh, setRefresh] = useState(localStorage.getItem("refresh"));
+  const [user, setUser] = useState(null);
+  const [access, setAccess] = useState(null);
+  const [refresh, setRefresh] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Always at top level
   const navigate = useNavigate();
 
-  // login helper
-  const login = (tokens, userData) => {
+  // hydrate once on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    const storedAccess = localStorage.getItem("access");
+    const storedRefresh = localStorage.getItem("refresh");
+    if (storedUser && storedAccess) {
+      setUser(JSON.parse(storedUser));
+      setAccess(storedAccess);
+      setRefresh(storedRefresh || null);
+    }
+    setLoading(false);
+  }, []);
+
+  // multi-tab sync
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "access" && !e.newValue) {
+        // someone logged out in another tab
+        setAccess(null); setRefresh(null); setUser(null);
+      }
+      if (e.key === "user" && e.newValue) {
+        setUser(JSON.parse(e.newValue));
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const login = (tokens, userData, redirectTo = "/dashboard") => {
     setAccess(tokens.access);
     setRefresh(tokens.refresh);
     setUser(userData);
     localStorage.setItem("access", tokens.access);
     localStorage.setItem("refresh", tokens.refresh);
     localStorage.setItem("user", JSON.stringify(userData));
+    try { navigate(redirectTo); } catch {}
   };
 
-  // logout helper
   const logout = (message) => {
     setAccess(null);
     setRefresh(null);
     setUser(null);
-    localStorage.clear();
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
     if (message) sessionStorage.setItem("authError", message);
-
-    try {
-      navigate("/login"); // ✅ uses hook normally
-    } catch {
-      window.location.href = "/login"; // ✅ fallback if no Router
-    }
+    try { navigate("/login"); } catch { window.location.href = "/login"; }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, access, refresh, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
+  };
+
+  const value = useMemo(
+    () => ({ user, access, refresh, loading, login, logout, updateUser }),
+    [user, access, refresh, loading]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
