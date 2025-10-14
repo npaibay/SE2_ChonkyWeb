@@ -30,10 +30,7 @@ def serialize_user(user: User):
     }
 
 
-# =============================
-# JWT login: email OR username
-# POST /api/users/token/  { "identifier": "...", "password": "..." }
-# =============================
+# ===== Auth: POST /api/users/token/  {identifier, password}
 class TokenObtainView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -42,52 +39,42 @@ class TokenObtainView(APIView):
         password = serializers.CharField()
 
     def post(self, request):
-        serializer = self.InputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        s = self.InputSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        identifier = s.validated_data["identifier"].strip()
+        password = s.validated_data["password"]
 
-        identifier = serializer.validated_data["identifier"].strip()
-        password = serializer.validated_data["password"]
-
-        # Find by username OR email (case-insensitive)
+        # Find by username OR email (case-insensitive), then verify password
         user = User.objects.filter(
             Q(username__iexact=identifier) | Q(email__iexact=identifier)
         ).first()
 
-        # Verify password directly (avoids backend misconfig issues)
         if not user or not user.check_password(password):
-            SecurityLog.objects.create(
-                user=None, action="FAILED_LOGIN", ip_address=get_client_ip(request)
-            )
+            SecurityLog.objects.create(user=None, action="FAILED_LOGIN", ip_address=get_client_ip(request))
             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         if not user.is_active:
             return Response({"detail": "Inactive account"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Issue tokens + optional custom claims
         refresh = RefreshToken.for_user(user)
         refresh["username"] = user.username
         refresh["email"] = user.email
         refresh["is_admin"] = bool(user.is_staff or user.is_superuser)
 
         SecurityLog.objects.create(user=user, action="LOGIN", ip_address=get_client_ip(request))
-
         return Response({"refresh": str(refresh), "access": str(refresh.access_token)})
 
 
-# =============================
-# Logout (blacklist refresh)
-# POST /api/users/logout/  { "refresh": "<token>" }
-# =============================
+# ===== Logout: POST /api/users/logout/  {refresh}
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
+        rt = request.data.get("refresh")
+        if not rt:
             return Response({"detail": "Refresh token required"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            token = RefreshToken(refresh_token)
+            token = RefreshToken(rt)
             token.blacklist()
             SecurityLog.objects.create(user=request.user, action="LOGOUT", ip_address=get_client_ip(request))
             return Response({"detail": "Logged out successfully"})
@@ -95,85 +82,64 @@ class LogoutView(APIView):
             return Response({"detail": "Invalid or expired refresh token"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# =============================
-# Protected endpoints
-# =============================
+# ===== Me: GET /api/users/me/
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
     def get(self, request):
         return Response(serialize_user(request.user))
 
 
+# ===== Update password: POST /api/users/update-password/
 class UpdatePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         old_pw = request.data.get("old_password")
         new_pw = request.data.get("new_password")
-
         if not old_pw or not new_pw:
             return Response({"detail": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
-
         if not request.user.check_password(old_pw):
             return Response({"detail": "Old password incorrect"}, status=status.HTTP_400_BAD_REQUEST)
-
-        request.user.set_password(new_pw)
-        request.user.save()
-
+        request.user.set_password(new_pw); request.user.save()
         SecurityLog.objects.create(user=request.user, action="PASSWORD_CHANGE", ip_address=get_client_ip(request))
-
         return Response({"detail": "Password updated"})
 
 
+# ===== Admin actions
 class CreateUserView(APIView):
     permission_classes = [permissions.IsAdminUser]
-
     def post(self, request):
         username = request.data.get("username")
-        email = request.data.get("email")
+        email    = request.data.get("email")
         password = request.data.get("password")
-
         if not username or not email or not password:
             return Response({"detail": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
-
         if User.objects.filter(username=username).exists():
             return Response({"detail": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
         if User.objects.filter(email=email).exists():
             return Response({"detail": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
         user = User.objects.create_user(username=username, email=email, password=password)
-
         SecurityLog.objects.create(user=request.user, action="CREATE_USER", ip_address=get_client_ip(request))
-
         return Response({"detail": "User created", "user": serialize_user(user)}, status=status.HTTP_201_CREATED)
 
 
 class DeactivateUserView(APIView):
     permission_classes = [permissions.IsAdminUser]
-
     def post(self, request):
         target_username = request.data.get("username")
         if not target_username:
             return Response({"detail": "Missing username"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             target = User.objects.get(username=target_username)
         except User.DoesNotExist:
             return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        target.is_active = False
-        target.save()
-
+        target.is_active = False; target.save()
         SecurityLog.objects.create(user=request.user, action="DEACTIVATE_USER", ip_address=get_client_ip(request))
-
         return Response({"detail": f"User '{target_username}' deactivated"})
 
 
 class LogsView(APIView):
-    """Admin-only: last 50 security logs."""
     permission_classes = [permissions.IsAdminUser]
-
     def get(self, request):
         logs = SecurityLog.objects.select_related("user").order_by("-timestamp")[:50]
         data = [
@@ -188,19 +154,14 @@ class LogsView(APIView):
         return Response(data)
 
 
-# --- Admin: list users & update roles ---
 class UsersListView(APIView):
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-
     def get(self, request):
         qs = User.objects.all().order_by("username")
         data = [
             {
-                "id": u.id,
-                "username": u.username,
-                "email": u.email,
-                "is_staff": u.is_staff,
-                "is_superuser": u.is_superuser,
+                "id": u.id, "username": u.username, "email": u.email,
+                "is_staff": u.is_staff, "is_superuser": u.is_superuser,
             }
             for u in qs
         ]
@@ -209,18 +170,12 @@ class UsersListView(APIView):
 
 class UpdateRoleView(APIView):
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-
     def post(self, request):
-        username = request.data.get("username")
-        is_staff = bool(request.data.get("is_staff"))
+        username     = request.data.get("username")
+        is_staff     = bool(request.data.get("is_staff"))
         is_superuser = bool(request.data.get("is_superuser"))
-
         if not username:
             return Response({"detail": "Missing username"}, status=status.HTTP_400_BAD_REQUEST)
-
         user = get_object_or_404(User, username=username)
-        user.is_staff = is_staff
-        user.is_superuser = is_superuser
-        user.save()
-
+        user.is_staff = is_staff; user.is_superuser = is_superuser; user.save()
         return Response({"detail": "Roles updated successfully."}, status=status.HTTP_200_OK)

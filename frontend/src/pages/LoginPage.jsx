@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import logo from "../assets/pictures/chonky_boi-logo-01.png";
 import { useAuth } from "../context/AuthContext";
 
+const API_BASE =
+  (import.meta?.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
+
 function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -20,23 +23,26 @@ function LoginPage() {
     }
   }, []);
 
-  const notifyErr = (msg) =>
-    (toast?.error ? toast.error(msg) : alert(msg));
-  const notifyOk = (msg) =>
-    (toast?.success ? toast.success(msg) : alert(msg));
+  const notifyErr = (msg) => (toast?.error ? toast.error(msg) : alert(msg));
+  const notifyOk = (msg) => (toast?.success ? toast.success(msg) : alert(msg));
 
   const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
+
     setLoading(true);
     setAuthError(null);
 
     try {
-      // 1) Get tokens (email OR username supported by your backend)
-      const tokenRes = await fetch("/api/users/token/", {
+      // Normalize inputs (avoid sneaky unicode/whitespace issues)
+      const ident = identifier.trim();
+      const pwd = password.normalize("NFKC");
+
+      // 1) Obtain tokens (supports username OR email)
+      const tokenRes = await fetch(`${API_BASE}/api/users/token/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier: ident, password: pwd }),
       });
 
       if (!tokenRes.ok) {
@@ -50,8 +56,8 @@ function LoginPage() {
 
       const { access, refresh } = await tokenRes.json();
 
-      // 2) Fetch profile with the access token
-      const meRes = await fetch("/api/users/me/", {
+      // 2) Fetch profile using the fresh access token
+      const meRes = await fetch(`${API_BASE}/api/users/me/`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${access}`,
@@ -59,28 +65,31 @@ function LoginPage() {
       });
 
       if (!meRes.ok) {
-        setAuthError("Failed to load user profile.");
-        notifyErr("Failed to load user profile.");
+        const txt = await meRes.text().catch(() => "");
+        const msg = txt || "Failed to load user profile.";
+        setAuthError(msg);
+        notifyErr(msg);
         setLoading(false);
         return;
       }
 
       const me = await meRes.json(); // { id, username, email, is_admin }
 
-      // 3) Persist tokens with keys that your apiFetch expects
+      // 3) Persist tokens with the keys the app expects
       localStorage.setItem("access", access);
       localStorage.setItem("refresh", refresh);
 
-      // 4) Update context (your AuthContext.login may also navigate)
+      // 4) Update auth context
       login({ access, refresh }, me);
 
-      // 5) Navigate to dashboard (safe even if login() already navigates)
+      // 5) Navigate to dashboard
       notifyOk("Login successful!");
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
-      setAuthError("Server error, please try again.");
-      notifyErr("Server error, please try again.");
+      const msg = "Server error, please try again.";
+      setAuthError(msg);
+      notifyErr(msg);
     } finally {
       setLoading(false);
     }
